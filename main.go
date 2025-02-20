@@ -30,13 +30,19 @@ func main() {
 
     app := fiber.New()
 
-    // 📌 (1) 정적 파일 서빙 (HTML, JS 제공)
+    // 📌 (1) 정적 파일 제공 (HTML, JS)
     app.Static("/", "./static")
 
-    // 📌 (2) 게시판 목록 API
+    // 📌 (2) 게시글 목록 조회 API (댓글 제외)
     app.Get("/free", func(c *fiber.Ctx) error {
-        query := `SELECT wr_id, IFNULL(wr_subject, '제목 없음'), IFNULL(wr_name, '익명'), wr_datetime, wr_hit, wr_good 
+        query := `SELECT wr_id, 
+                         IFNULL(NULLIF(wr_subject, ''), '제목 없음'), 
+                         IFNULL(wr_name, '익명'), 
+                         IFNULL(wr_datetime, NOW()), 
+                         IFNULL(wr_hit, 0), 
+                         IFNULL(wr_good, 0)
                   FROM g5_write_free 
+                  WHERE wr_is_comment = 0  -- ✅ 게시글만 조회
                   ORDER BY wr_datetime DESC 
                   LIMIT 10`
 
@@ -50,15 +56,19 @@ func main() {
 
         for rows.Next() {
             var wr_id, wr_hit, wr_good int
-            var wr_subject, wr_name, wr_datetime string
+            var wr_subject, wr_name string
+            var wr_datetime sql.NullString
 
             if err := rows.Scan(&wr_id, &wr_subject, &wr_name, &wr_datetime, &wr_hit, &wr_good); err != nil {
                 return c.Status(500).JSON(fiber.Map{"error": err.Error()})
             }
 
             // 날짜 변환
-            parsedTime, _ := time.Parse("2006-01-02 15:04:05", wr_datetime)
-            formattedTime := parsedTime.Format("2006-01-02 15:04:05")
+            formattedTime := "날짜 없음"
+            if wr_datetime.Valid {
+                parsedTime, _ := time.Parse("2006-01-02 15:04:05", wr_datetime.String)
+                formattedTime = parsedTime.Format("2006-01-02 15:04:05")
+            }
 
             posts = append(posts, fiber.Map{
                 "id":    wr_id,
@@ -73,13 +83,13 @@ func main() {
         return c.JSON(posts)
     })
 
-    // 📌 (3) 게시글 상세 API
+    // 📌 (3) 게시글 상세 조회 API
     app.Get("/free/:id", func(c *fiber.Ctx) error {
         wrID := c.Params("id")
 
         query := `SELECT wr_id, wr_subject, wr_name, wr_datetime, wr_hit, wr_good, wr_content 
                   FROM g5_write_free 
-                  WHERE wr_id = ?`
+                  WHERE wr_id = ? AND wr_is_comment = 0`  -- ✅ 게시글만 조회
 
         var wr_id, wr_hit, wr_good int
         var wr_subject, wr_name, wr_datetime, wr_content string
@@ -104,6 +114,43 @@ func main() {
         })
     })
 
-    log.Printf("서버가 http://localhost:%s 에서 실행 중...", apiPort)
+    // 📌 (4) 특정 게시글의 댓글 조회 API
+    app.Get("/free/:id/comments", func(c *fiber.Ctx) error {
+        wrParentID := c.Params("id")
+
+        query := `SELECT wr_id, wr_parent, wr_content, wr_name, wr_datetime 
+                  FROM g5_write_free 
+                  WHERE wr_parent = ? AND wr_is_comment = 1  -- ✅ 댓글만 조회
+                  ORDER BY wr_datetime ASC`
+
+        rows, err := db.Query(query, wrParentID)
+        if err != nil {
+            return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+        }
+        defer rows.Close()
+
+        var comments []map[string]interface{}
+
+        for rows.Next() {
+            var wr_id, wr_parent int
+            var wr_content, wr_name, wr_datetime string
+
+            if err := rows.Scan(&wr_id, &wr_parent, &wr_content, &wr_name, &wr_datetime); err != nil {
+                return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+            }
+
+            comments = append(comments, fiber.Map{
+                "댓글ID":  wr_id,
+                "부모ID":  wr_parent,
+                "내용":    wr_content,
+                "작성자":  wr_name,
+                "날짜":    wr_datetime,
+            })
+        }
+
+        return c.JSON(comments)
+    })
+
+    log.Printf("🚀 서버가 http://localhost:%s 에서 실행 중...", apiPort)
     log.Fatal(app.Listen(":" + apiPort))
 }
