@@ -89,7 +89,7 @@ func main() {
 
         query := `SELECT wr_id, wr_subject, wr_name, wr_datetime, wr_hit, wr_good, wr_content 
                   FROM g5_write_free 
-                  WHERE wr_id = ? AND wr_is_comment = 0`  -- ✅ 게시글만 조회
+                  WHERE wr_id = ? AND wr_is_comment = 0`  --게시글만 조회
 
         var wr_id, wr_hit, wr_good int
         var wr_subject, wr_name, wr_datetime, wr_content string
@@ -120,7 +120,7 @@ func main() {
 
         query := `SELECT wr_id, wr_parent, wr_content, wr_name, wr_datetime 
                   FROM g5_write_free 
-                  WHERE wr_parent = ? AND wr_is_comment = 1  -- ✅ 댓글만 조회
+                  WHERE wr_parent = ? AND wr_is_comment = 1  --댓글만 조회
                   ORDER BY wr_datetime ASC`
 
         rows, err := db.Query(query, wrParentID)
