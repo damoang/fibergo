@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     // 📌 게시판 목록 (`free.html`)
     if (postContainer) {
-        const apiUrl = "/go/api/free"; // API 호출 경로
+        const apiUrl = "https://staging.damoang.net/go/api/free"; // API 호출 경로
 
         try {
             const response = await fetch(apiUrl);
