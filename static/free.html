@@ -4,12 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>자유게시판</title>
-    <script defer src="script.js"></script> <!-- JS 파일 연결 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .board-container {
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+        .board-header {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .board-table {
+            width: 100%;
+            border-top: 2px solid #333;
+        }
+        .board-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+        }
+        .board-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .title-link {
+            color: #333;
+            text-decoration: none;
+        }
+        .title-link:hover {
+            text-decoration: underline;
+        }
+        .write-btn {
+            float: right;
+            margin: 20px 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>자유게시판</h1>
-    <div id="post-list">
-        <p>게시글을 불러오는 중...</p>
+    <div class="board-container">
+        <div class="board-header">
+            <h2>자유게시판</h2>
+        </div>
+        
+        <table class="board-table">
+            <thead>
+                <tr>
+                    <th width="8%">번호</th>
+                    <th>제목</th>
+                    <th width="12%">글쓴이</th>
+                    <th width="12%">날짜</th>
+                    <th width="8%">조회</th>
+                    <th width="8%">추천</th>
+                </tr>
+            </thead>
+            <tbody id="posts">
+            </tbody>
+        </table>
+
+        <button class="btn btn-primary write-btn">글쓰기</button>
     </div>
+
+    <script>
+        async function loadPosts() {
+            try {
+                const response = await fetch('/free');
+                const posts = await response.json();
+                
+                const postsHTML = posts.map(post => `
+                    <tr>
+                        <td>${post.id}</td>
+                        <td><a href="/free/${post.id}" class="title-link">${post.제목}</a></td>
+                        <td>${post.이름}</td>
+                        <td>${new Date(post.날짜).toLocaleDateString()}</td>
+                        <td>${post.조회}</td>
+                        <td>${post.추천}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('posts').innerHTML = postsHTML;
+            } catch (error) {
+                console.error('게시글 로딩 실패:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPosts);
+    </script>
 </body>
 </html>
