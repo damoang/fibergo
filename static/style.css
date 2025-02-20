@@ -1,0 +1,11 @@
+body {
+    font-family: 'Pretendard', sans-serif;
+    background-color: #f8f9fa;
+}
+h1 {
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+.table-hover tbody tr:hover {
+    background-color: #e9ecef;
+}
