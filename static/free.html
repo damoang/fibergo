@@ -41,6 +41,14 @@
             float: right;
             margin: 20px 0;
         }
+        .comment-count {
+            color: #ff6b6b;
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+        .text-center {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -52,45 +60,23 @@
         <table class="board-table">
             <thead>
                 <tr>
-                    <th width="8%">번호</th>
+                    <th width="8%" class="text-center">번호</th>
                     <th>제목</th>
-                    <th width="12%">글쓴이</th>
-                    <th width="12%">날짜</th>
-                    <th width="8%">조회</th>
-                    <th width="8%">추천</th>
+                    <th width="12%" class="text-center">글쓴이</th>
+                    <th width="12%" class="text-center">날짜</th>
+                    <th width="8%" class="text-center">조회</th>
+                    <th width="8%" class="text-center">추천</th>
                 </tr>
             </thead>
             <tbody id="posts">
+                <!-- 게시글이 여기에 동적으로 로드됩니다 -->
             </tbody>
         </table>
 
-        <button class="btn btn-primary write-btn">글쓰기</button>
+        <button class="btn btn-primary write-btn" onclick="location.href='/write.html'">글쓰기</button>
     </div>
 
-    <script>
-        async function loadPosts() {
-            try {
-                const response = await fetch('/free');
-                const posts = await response.json();
-                
-                const postsHTML = posts.map(post => `
-                    <tr>
-                        <td>${post.id}</td>
-                        <td><a href="/free/${post.id}" class="title-link">${post.제목}</a></td>
-                        <td>${post.이름}</td>
-                        <td>${new Date(post.날짜).toLocaleDateString()}</td>
-                        <td>${post.조회}</td>
-                        <td>${post.추천}</td>
-                    </tr>
-                `).join('');
-                
-                document.getElementById('posts').innerHTML = postsHTML;
-            } catch (error) {
-                console.error('게시글 로딩 실패:', error);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', loadPosts);
-    </script>
+    <!-- 외부 스크립트 파일 로드 -->
+    <script src="/script.js"></script>
 </body>
 </html>
