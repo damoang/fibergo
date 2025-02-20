@@ -42,7 +42,7 @@ func main() {
                          IFNULL(wr_hit, 0), 
                          IFNULL(wr_good, 0)
                   FROM g5_write_free 
-                  WHERE wr_is_comment = 0  -- ✅ 게시글만 조회
+                  WHERE wr_is_comment = 0  
                   ORDER BY wr_datetime DESC 
                   LIMIT 10`
 
