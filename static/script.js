@@ -65,3 +65,63 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
     }
 });
+
+async function loadPosts() {
+    try {
+        const response = await fetch('/free');
+        const posts = await response.json();
+        
+        const postsHTML = posts.map(post => {
+            // 날짜 포맷팅
+            const formattedDate = formatDate(post.날짜);
+            
+            return `
+                <tr>
+                    <td class="text-center">${post.id}</td>
+                    <td>
+                        <a href="/view.html?id=${post.id}" class="title-link">
+                            ${post.제목}
+                            ${post.댓글수 > 0 ? `<span class="comment-count">[${post.댓글수}]</span>` : ''}
+                        </a>
+                    </td>
+                    <td class="text-center">${post.이름}</td>
+                    <td class="text-center">${formattedDate}</td>
+                    <td class="text-center">${post.조회}</td>
+                    <td class="text-center">${post.추천}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        document.getElementById('posts').innerHTML = postsHTML;
+    } catch (error) {
+        console.error('게시글 로딩 실패:', error);
+        document.getElementById('posts').innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center">게시글을 불러오는데 실패했습니다.</td>
+            </tr>
+        `;
+    }
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    // 오늘 날짜인 경우 시간만 표시
+    if (date.toDateString() === today.toDateString()) {
+        return date.toLocaleTimeString('ko-KR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    }
+    
+    // 다른 날짜의 경우 년-월-일 표시
+    return date.toLocaleDateString('ko-KR', { 
+        year: '2-digit', 
+        month: '2-digit', 
+        day: '2-digit' 
+    }).replace(/\./g, '-').replace(/\s/g, '');
+}
+
+// 페이지 로드 시 게시글 목록 불러오기
+document.addEventListener('DOMContentLoaded', loadPosts);
