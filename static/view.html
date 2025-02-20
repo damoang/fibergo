@@ -3,15 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>게시글 상세보기</title>
-    <script defer src="script.js"></script> <!-- JS 파일 연결 -->
+    <title>게시글 보기</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .view-container {
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+        .post-header {
+            border-top: 2px solid #333;
+            border-bottom: 1px solid #dee2e6;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .post-title {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .post-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .post-info span {
+            margin-right: 15px;
+        }
+        .post-content {
+            padding: 30px 15px;
+            min-height: 200px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .post-footer {
+            padding: 15px;
+            text-align: right;
+        }
+        .comments-section {
+            margin-top: 30px;
+        }
+        .comment {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .comment-header {
+            margin-bottom: 10px;
+        }
+        .comment-author {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .comment-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .btn-group {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>게시글 상세보기</h1>
-    <div id="post-detail">
-        <p>게시글을 불러오는 중...</p>
+    <div class="view-container">
+        <div id="post-container">
+            <!-- 게시글 내용이 여기에 동적으로 로드됩니다 -->
+        </div>
+        
+        <div class="comments-section" id="comments-container">
+            <!-- 댓글이 여기에 동적으로 로드됩니다 -->
+        </div>
+
+        <div class="btn-group">
+            <a href="/free.html" class="btn btn-secondary">목록</a>
+        </div>
     </div>
-    <br>
-    <a href="free.html">← 목록으로</a> <!-- 목록으로 돌아가기 -->
+
+    <script>
+        async function loadPost() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('id');
+            
+            try {
+                const [postResponse, commentsResponse] = await Promise.all([
+                    fetch(`/free/${postId}`),
+                    fetch(`/free/${postId}/comments`)
+                ]);
+
+                const post = await postResponse.json();
+                const comments = await commentsResponse.json();
+
+                // 게시글 내용 렌더링
+                document.getElementById('post-container').innerHTML = `
+                    <div class="post-header">
+                        <h1 class="post-title">${post.제목}</h1>
+                        <div class="post-info">
+                            <span>작성자: ${post.이름}</span>
+                            <span>작성일: ${formatDate(post.날짜)}</span>
+                            <span>조회: ${post.조회}</span>
+                            <span>추천: ${post.추천}</span>
+                        </div>
+                    </div>
+                    <div class="post-content">
+                        ${post.내용.replace(/\n/g, '<br>')}
+                    </div>
+                    <div class="post-footer">
+                        <button class="btn btn-primary btn-sm" onclick="recommendPost(${post.id})">
+                            추천 <span class="badge bg-light text-dark">${post.추천}</span>
+                        </button>
+                    </div>
+                `;
+
+                // 댓글 렌더링
+                const commentsHTML = comments.map(comment => `
+                    <div class="comment">
+                        <div class="comment-header">
+                            <span class="comment-author">${comment.작성자}</span>
+                            <span class="comment-date">${formatDate(comment.날짜)}</span>
+                        </div>
+                        <div class="comment-content">
+                            ${comment.내용.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('comments-container').innerHTML = `
+                    <h4>댓글 ${comments.length}개</h4>
+                    ${commentsHTML}
+                `;
+
+            } catch (error) {
+                console.error('데이터 로딩 실패:', error);
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        async function recommendPost(postId) {
+            try {
+                const response = await fetch(`/free/${postId}/recommend`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    loadPost(); // 페이지 새로고침
+                }
+            } catch (error) {
+                console.error('추천 실패:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPost);
+    </script>
 </body>
 </html>
