@@ -12,7 +12,11 @@ import (
 )
 
 func main() {
-    _ = godotenv.Load()
+    // 환경 변수 로드
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatal("환경 변수를 로드할 수 없습니다:", err)
+    }
 
     dbUser := os.Getenv("DB_USER")
     dbPassword := os.Getenv("DB_PASSWORD")
@@ -21,10 +25,11 @@ func main() {
     dbName := os.Getenv("DB_NAME")
     apiPort := os.Getenv("API_PORT")
 
+    // 데이터베이스 연결
     dsn := dbUser + ":" + dbPassword + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?charset=utf8mb4&parseTime=True"
     db, err := sql.Open("mysql", dsn)
     if err != nil {
-        log.Fatal(err)
+        log.Fatal("데이터베이스 연결 실패:", err)
     }
     defer db.Close()
 
@@ -63,9 +68,8 @@ func main() {
                 return c.Status(500).JSON(fiber.Map{"error": err.Error()})
             }
 
-            // 날짜 변환
             formattedTime := "날짜 없음"
-            if wr_datetime.Valid {
+            if wr_datetime.Valid && wr_datetime.String != "0000-00-00 00:00:00" {
                 parsedTime, _ := time.Parse("2006-01-02 15:04:05", wr_datetime.String)
                 formattedTime = parsedTime.Format("2006-01-02 15:04:05")
             }
@@ -89,7 +93,7 @@ func main() {
 
         query := `SELECT wr_id, wr_subject, wr_name, wr_datetime, wr_hit, wr_good, wr_content 
                   FROM g5_write_free 
-                  WHERE wr_id = ? AND wr_is_comment = 0`  -- 게시글만 조회
+                  WHERE wr_id = ? AND wr_is_comment = 0`  /* 게시글만 조회 */
 
         var wr_id, wr_hit, wr_good int
         var wr_subject, wr_name, wr_datetime, wr_content string
@@ -120,7 +124,7 @@ func main() {
 
         query := `SELECT wr_id, wr_parent, wr_content, wr_name, wr_datetime 
                   FROM g5_write_free 
-                  WHERE wr_parent = ? AND wr_is_comment = 1  -- 댓글만 조회
+                  WHERE wr_parent = ? AND wr_is_comment = 1  
                   ORDER BY wr_datetime ASC`
 
         rows, err := db.Query(query, wrParentID)
