@@ -60,18 +60,22 @@ func main() {
     // 📌 (1) 정적 파일 제공 (HTML, JS)
     app.Static("/", "./static")
 
-    // 📌 (2) 게시글 목록 조회 API (댓글 제외)
+    // 📌 (2) 게시글 목록 조회 API (댓글 수 포함)
     app.Get("/free", func(c *fiber.Ctx) error {
-        query := `SELECT wr_id, 
-                         IFNULL(NULLIF(wr_subject, ''), '제목 없음'), 
-                         IFNULL(wr_name, '익명'), 
-                         IFNULL(wr_datetime, NOW()), 
-                         IFNULL(wr_hit, 0), 
-                         IFNULL(wr_good, 0)
-                  FROM g5_write_free 
-                  WHERE wr_is_comment = 0  
-                  ORDER BY wr_datetime DESC 
-                  LIMIT 10`
+        query := `
+            SELECT f.wr_id, 
+                   IFNULL(NULLIF(f.wr_subject, ''), '제목 없음') as wr_subject, 
+                   IFNULL(f.wr_name, '익명') as wr_name, 
+                   IFNULL(f.wr_datetime, NOW()) as wr_datetime, 
+                   IFNULL(f.wr_hit, 0) as wr_hit, 
+                   IFNULL(f.wr_good, 0) as wr_good,
+                   (SELECT COUNT(*) 
+                    FROM g5_write_free c 
+                    WHERE c.wr_parent = f.wr_id AND c.wr_is_comment = 1) as comment_count
+            FROM g5_write_free f
+            WHERE f.wr_is_comment = 0  
+            ORDER BY f.wr_datetime DESC 
+            LIMIT 20`
 
         rows, err := db.Query(query)
         if err != nil {
@@ -82,11 +86,11 @@ func main() {
         var posts []map[string]interface{}
 
         for rows.Next() {
-            var wr_id, wr_hit, wr_good int
+            var wr_id, wr_hit, wr_good, comment_count int
             var wr_subject, wr_name string
             var wr_datetime sql.NullString
 
-            if err := rows.Scan(&wr_id, &wr_subject, &wr_name, &wr_datetime, &wr_hit, &wr_good); err != nil {
+            if err := rows.Scan(&wr_id, &wr_subject, &wr_name, &wr_datetime, &wr_hit, &wr_good, &comment_count); err != nil {
                 return c.Status(500).JSON(fiber.Map{"error": err.Error()})
             }
 
@@ -97,12 +101,13 @@ func main() {
             }
 
             posts = append(posts, fiber.Map{
-                "id":    wr_id,
-                "추천":  wr_good,
-                "제목":  wr_subject,
-                "이름":  wr_name,
-                "날짜":  formattedTime,
-                "조회":  wr_hit,
+                "id":      wr_id,
+                "추천":    wr_good,
+                "제목":    wr_subject,
+                "이름":    wr_name,
+                "날짜":    formattedTime,
+                "조회":    wr_hit,
+                "댓글수":  comment_count,
             })
         }
 
