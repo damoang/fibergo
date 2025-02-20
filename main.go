@@ -33,7 +33,29 @@ func main() {
     }
     defer db.Close()
 
-    app := fiber.New()
+    // DB 커넥션 풀 설정
+    db.SetMaxOpenConns(25)
+    db.SetMaxIdleConns(25)
+    db.SetConnMaxLifetime(5 * time.Minute)
+
+    // DB 연결 확인
+    if err := db.Ping(); err != nil {
+        log.Fatal("데이터베이스 연결 확인 실패:", err)
+    }
+
+    app := fiber.New(fiber.Config{
+        ReadTimeout:  5 * time.Second,
+        WriteTimeout: 10 * time.Second,
+        IdleTimeout:  120 * time.Second,
+        EnableGzip: true,
+        Prefork: true,
+    })
+
+    app.Use(func(c *fiber.Ctx) error {
+        c.Set("Access-Control-Allow-Origin", "*")
+        c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        return c.Next()
+    })
 
     // 📌 (1) 정적 파일 제공 (HTML, JS)
     app.Static("/", "./static")
@@ -153,6 +175,11 @@ func main() {
         }
 
         return c.JSON(comments)
+    })
+
+    // 에러 핸들러 추가
+    app.Use(func(c *fiber.Ctx) error {
+        return c.Status(404).SendString("페이지를 찾을 수 없습니다")
     })
 
     log.Printf("🚀 서버가 http://localhost:%s 에서 실행 중...", apiPort)
