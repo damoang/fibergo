@@ -4,6 +4,7 @@ import (
     "database/sql"
     "log"
     "os"
+    "strings"
     "time"
 
     "github.com/gofiber/fiber/v2"
@@ -47,13 +48,35 @@ func main() {
         ReadTimeout:  5 * time.Second,
         WriteTimeout: 10 * time.Second,
         IdleTimeout:  120 * time.Second,
-        EnableGzip: true,
-        Prefork: true,
+        EnableGzip:   true,
+        Prefork:      true,
+        // 에러 핸들러 추가
+        ErrorHandler: func(c *fiber.Ctx, err error) error {
+            code := fiber.StatusInternalServerError
+            if e, ok := err.(*fiber.Error); ok {
+                code = e.Code
+            }
+            return c.Status(code).JSON(fiber.Map{
+                "error": err.Error(),
+            })
+        },
     })
 
+    // CORS 미들웨어 개선
     app.Use(func(c *fiber.Ctx) error {
         c.Set("Access-Control-Allow-Origin", "*")
         c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        c.Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+        c.Set("Access-Control-Allow-Credentials", "true")
+        
+        // 보안 헤더 추가
+        c.Set("X-Content-Type-Options", "nosniff")
+        c.Set("X-Frame-Options", "DENY")
+        c.Set("X-XSS-Protection", "1; mode=block")
+        
+        if c.Method() == "OPTIONS" {
+            return c.SendStatus(204)
+        }
         return c.Next()
     })
 
@@ -66,20 +89,62 @@ func main() {
     // API 라우트
     app.Get("/api/:type", HandleBoardAPI)
 
-    // 📌 (3) 게시글 상세 조회 API
-    app.Get("/free/:id", func(c *fiber.Ctx) error {
+    // 게시글 상세 조회 API
+    app.Get("/board/:type/:id", func(c *fiber.Ctx) error {
+        boardType := c.Params("type")
         wrID := c.Params("id")
+        
+        // 입력값 검증 추가
+        if wrID == "" {
+            return c.Status(400).JSON(fiber.Map{
+                "error": "잘못된 게시글 ID입니다",
+            })
+        }
 
+        // 게시판 타입 검증
+        allowedBoards := map[string]bool{
+            "free": true,
+            "notice": true,
+            "gallery": true,
+            // 필요한 게시판 타입 추가
+        }
+        
+        if !allowedBoards[boardType] {
+            return c.Status(400).JSON(fiber.Map{
+                "error": "유효하지 않은 게시판입니다",
+            })
+        }
+
+        tableName := "g5_write_" + boardType
+        
+        // Prepared Statement 사용
         query := `SELECT wr_id, wr_subject, wr_name, wr_datetime, wr_hit, wr_good, wr_content 
-                  FROM g5_write_free 
-                  WHERE wr_id = ? AND wr_is_comment = 0`  /* 게시글만 조회 */
+                  FROM ?? 
+                  WHERE wr_id = ? AND wr_is_comment = 0`
+        
+        // 실제 쿼리 생성 (더 안전한 방식)
+        query = strings.Replace(query, "??", tableName, 1)
 
         var wr_id, wr_hit, wr_good int
         var wr_subject, wr_name, wr_datetime, wr_content string
 
         err := db.QueryRow(query, wrID).Scan(&wr_id, &wr_subject, &wr_name, &wr_datetime, &wr_hit, &wr_good, &wr_content)
         if err != nil {
-            return c.Status(404).JSON(fiber.Map{"error": "게시글을 찾을 수 없습니다."})
+            if err == sql.ErrNoRows {
+                return c.Status(404).JSON(fiber.Map{
+                    "error": "게시글을 찾을 수 없습니다",
+                })
+            }
+            return c.Status(500).JSON(fiber.Map{
+                "error": "서버 오류가 발생했습니다",
+            })
+        }
+
+        // 조회수 증가 쿼리도 같은 방식으로 수정
+        updateQuery := strings.Replace("UPDATE ?? SET wr_hit = wr_hit + 1 WHERE wr_id = ?", "??", tableName, 1)
+        _, err = db.Exec(updateQuery, wrID)
+        if err != nil {
+            log.Printf("조회수 증가 실패: %v", err)
         }
 
         // 날짜 변환
@@ -97,14 +162,42 @@ func main() {
         })
     })
 
-    // 📌 (4) 특정 게시글의 댓글 조회 API
-    app.Get("/free/:id/comments", func(c *fiber.Ctx) error {
+    // 댓글 조회 API
+    app.Get("/board/:type/:id/comments", func(c *fiber.Ctx) error {
+        boardType := c.Params("type")
         wrParentID := c.Params("id")
+        
+        if wrParentID == "" {
+            return c.Status(400).JSON(fiber.Map{
+                "error": "잘못된 게시글 ID입니다",
+            })
+        }
 
-        query := `SELECT wr_id, wr_parent, wr_content, wr_name, wr_datetime 
-                  FROM g5_write_free 
-                  WHERE wr_parent = ? AND wr_is_comment = 1  
-                  ORDER BY wr_datetime ASC`
+        // 게시판 타입 검증
+        allowedBoards := map[string]bool{
+            "free": true,
+            "notice": true,
+            "gallery": true,
+        }
+        
+        if !allowedBoards[boardType] {
+            return c.Status(400).JSON(fiber.Map{
+                "error": "유효하지 않은 게시판입니다",
+            })
+        }
+
+        tableName := "g5_write_" + boardType
+        
+        // Prepared Statement 사용
+        query := strings.Replace(
+            `SELECT wr_id, wr_parent, wr_content, wr_name, wr_datetime 
+             FROM ?? 
+             WHERE wr_parent = ? AND wr_is_comment = 1  
+             ORDER BY wr_datetime ASC`,
+            "??",
+            tableName,
+            1,
+        )
 
         rows, err := db.Query(query, wrParentID)
         if err != nil {
@@ -131,12 +224,24 @@ func main() {
             })
         }
 
-        return c.JSON(comments)
+        // 에러 처리 개선
+        if err := rows.Err(); err != nil {
+            return c.Status(500).JSON(fiber.Map{
+                "error": "댓글 조회 중 오류가 발생했습니다",
+            })
+        }
+
+        return c.JSON(fiber.Map{
+            "comments": comments,
+            "count":    len(comments),
+        })
     })
 
-    // 에러 핸들러 추가
+    // 404 에러 핸들러 개선
     app.Use(func(c *fiber.Ctx) error {
-        return c.Status(404).SendString("페이지를 찾을 수 없습니다")
+        return c.Status(404).JSON(fiber.Map{
+            "error": "요청하신 페이지를 찾을 수 없습니다",
+        })
     })
 
     log.Printf("🚀 서버가 http://localhost:%s 에서 실행 중...", apiPort)
