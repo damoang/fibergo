@@ -21,8 +21,8 @@ func HandleBoardSSR(c *fiber.Ctx) error {
 		})
 	}
 
-	// board.html 파일을 렌더링
-	return c.SendFile("./static/board.html")
+	// board.html 파일을 렌더링 (경로 수정)
+	return c.SendFile("./templates/board.html")
 }
 
 // HandleBoardAPI handles API requests for board data

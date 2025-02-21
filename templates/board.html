@@ -1,0 +1,26 @@
+{{template "layout.html"}}
+
+<div class="board-container">
+    <h1>{{if eq .BoardType "free"}}자유게시판{{else if eq .BoardType "notice"}}공지사항{{end}}</h1>
+    
+    <div class="board-list" id="postList">
+        {{range .Posts}}
+        <div class="post-item">
+            <h3>{{.Subject}}</h3>
+            <div class="post-info">
+                <span>작성자: {{.Name}}</span>
+                <span>작성일: {{.DateTime}}</span>
+            </div>
+        </div>
+        {{end}}
+    </div>
+
+    <div class="pagination" id="pagination">
+        <!-- 페이지네이션 -->
+    </div>
+</div>
+
+<script>
+    const BOARD_TYPE = "{{.BoardType}}";  // JavaScript에서 사용할 게시판 타입
+</script>
+<script src="/static/js/board.js"></script> 

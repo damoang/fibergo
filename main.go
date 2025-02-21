@@ -79,17 +79,17 @@ func main() {
         return c.Next()
     })
 
-    // 📌 (1) 정적 파일 제공 (HTML, JS)
-    app.Static("/", "./static")
+    // 정적 파일 제공 (HTML, JS)
+    app.Static("/static", "./static")  // 정적 파일 경로 변경
 
-    // SSR 라우트
-    app.Get("/:type", routes.HandleBoardSSR)
+    // SSR 라우트 - URL 구조 변경
+    app.Get("/go/board/:type", routes.HandleBoardSSR)
     
-    // API 라우트
-    app.Get("/api/:type", routes.HandleBoardAPI)
+    // API 라우트 - URL 구조 변경
+    app.Get("/go/api/board/:type", routes.HandleBoardAPI)
 
     // 게시글 상세 조회 API
-    app.Get("/board/:type/:id", func(c *fiber.Ctx) error {
+    app.Get("/go/board/:type/:id", func(c *fiber.Ctx) error {
         boardType := c.Params("type")
         wrID := c.Params("id")
         
@@ -162,7 +162,7 @@ func main() {
     })
 
     // 댓글 조회 API
-    app.Get("/board/:type/:id/comments", func(c *fiber.Ctx) error {
+    app.Get("/go/board/:type/:id/comments", func(c *fiber.Ctx) error {
         boardType := c.Params("type")
         wrParentID := c.Params("id")
         
