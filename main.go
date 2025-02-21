@@ -10,6 +10,7 @@ import (
     "github.com/gofiber/fiber/v2"
     _ "github.com/go-sql-driver/mysql"
     "github.com/joho/godotenv"
+    "fibergo/routes"  // 프로젝트 이름에 맞게 수정하세요
 )
 
 func main() {
@@ -48,9 +49,7 @@ func main() {
         ReadTimeout:  5 * time.Second,
         WriteTimeout: 10 * time.Second,
         IdleTimeout:  120 * time.Second,
-        EnableGzip:   true,
         Prefork:      true,
-        // 에러 핸들러 추가
         ErrorHandler: func(c *fiber.Ctx, err error) error {
             code := fiber.StatusInternalServerError
             if e, ok := err.(*fiber.Error); ok {
@@ -84,10 +83,10 @@ func main() {
     app.Static("/", "./static")
 
     // SSR 라우트
-    app.Get("/:type", HandleBoardSSR)
+    app.Get("/:type", routes.HandleBoardSSR)
     
     // API 라우트
-    app.Get("/api/:type", HandleBoardAPI)
+    app.Get("/api/:type", routes.HandleBoardAPI)
 
     // 게시글 상세 조회 API
     app.Get("/board/:type/:id", func(c *fiber.Ctx) error {
