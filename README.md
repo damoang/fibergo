@@ -22,6 +22,6 @@ go run main.go
  │   ├── view.html     # 게시글 상세 페이지
  │   ├── script.js     # JavaScript (API 호출)
 ```
-✅ static/ 폴더에 HTML & JavaScript를 배치하여 Go 서버와 분리
-✅ Go 서버는 /free, /free/{id} API만 제공
-✅ 정적 파일을 제공하여 클라이언트에서 직접 HTML & JS를 로드
+✅ static/ 폴더에 HTML & JavaScript를 배치하여 Go 서버와 분리 
+✅ Go 서버는 /free, /free/{id} API만 제공 
+✅ 정적 파일을 제공하여 클라이언트에서 직접 HTML & JS를 로드 
