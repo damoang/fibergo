@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/free/(.*)", "destination": "/api/index.go" },
+    { "source": "/free", "destination": "/api/index.go" }
+  ]
+}
