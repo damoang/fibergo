@@ -1,6 +1,12 @@
 {
-  "rewrites": [
-    { "source": "/free/(.*)", "destination": "/api/index.go" },
-    { "source": "/free", "destination": "/api/index.go" }
-  ]
+  "functions": {
+    "api/*.go": {
+      "runtime": "vercel-go@1.0.0"
+    }
+  },
+  "build": {
+    "env": {
+      "GO_VERSION": "1.20"
+    }
+  }
 }
