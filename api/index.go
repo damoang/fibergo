@@ -1,43 +1,44 @@
-package handler
+package api
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/joho/godotenv"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/html/v2"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var app *fiber.App
+var db *sql.DB
 
 func init() {
-	_ = godotenv.Load() // .env 파일 로드 (로컬 개발용, Vercel에서는 필요 없음)
-	app = fiber.New()
+	// DB 연결
+	dsn := os.Getenv("DATABASE_URL")
+	var err error
+	db, err = sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// 환경 변수 로드
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
-	apiPort := os.Getenv("API_PORT")
-	allowedBoards := os.Getenv("ALLOWED_BOARDS")
+	// 템플릿 엔진 설정
+	engine := html.New("./templates", ".html")
+	engine.Reload(true)
+	engine.Debug(true)
+	engine.Layout("layouts/main")
 
-	log.Println("DB Connection:", dbUser, dbPassword, dbHost, dbPort, dbName)
-	log.Println("API_PORT:", apiPort)
-	log.Println("ALLOWED_BOARDS:", allowedBoards)
-
-	// API 라우트 추가
-	app.Get("/free", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"message": "Free Board"})
+	// Fiber 앱 초기화
+	app = fiber.New(fiber.Config{
+		Views:       engine,
+		ViewsLayout: "layouts/main",
+		Prefork:     false,
 	})
-	app.Get("/notice", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"message": "Notice Board"})
-	})
+
+	// 라우트 설정
+	setupRoutes()
 }
 
-// ✅ Vercel 서버리스 함수 진입점 (Handler)
 func Handler(w http.ResponseWriter, r *http.Request) {
-	r.RequestURI = r.URL.RequestURI()
 	app.Handler()(w, r)
 }

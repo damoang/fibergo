@@ -1,0 +1,70 @@
+{{define "styles"}}
+<style>
+    /* 즉시 필요한 스타일만 남기고 나머지는 별도 CSS 파일로 분리 가능 */
+    .board-list {
+        width: 100%;
+    }
+    .board-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .board-table th,
+    .board-table td {
+        padding: 12px 8px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .title {
+        color: #333;
+        text-decoration: none;
+    }
+    .title:hover {
+        text-decoration: underline;
+    }
+</style>
+{{end}}
+
+{{define "content"}}
+<div class="board-list">
+    <h1>{{.Title}}</h1>
+    <table class="board-table">
+        <thead>
+            <tr>
+                <th style="width: 60px">번호</th>
+                <th>제목</th>
+                <th style="width: 100px">작성자</th>
+                <th style="width: 100px">작성일</th>
+                <th style="width: 60px">조회</th>
+                <th style="width: 60px">추천</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Posts}}
+            <tr>
+                <td style="text-align: center">{{.id}}</td>
+                <td>
+                    <a href="/{{.BoardType}}/{{.id}}" class="title">{{.제목}}</a>
+                </td>
+                <td style="text-align: center">{{.작성자}}</td>
+                <td style="text-align: center">{{.작성일}}</td>
+                <td style="text-align: center">{{.조회수}}</td>
+                <td style="text-align: center">{{.추천수}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    <div class="pagination">
+        <span>전체 {{.Total}}개</span>
+        <!-- TODO: 페이지네이션 구현 -->
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    // 페이지 전환 시 부드러운 로딩
+    window.addEventListener('beforeunload', () => {
+        document.body.style.opacity = '0';
+    });
+</script>
+<script src="/static/js/board.js" defer></script>
+{{end}} 

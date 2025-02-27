@@ -1,0 +1,159 @@
+{{define "styles"}}
+<style>
+    /* 게시글 상세 스타일 */
+    .post-view {
+        padding: 20px;
+    }
+    .post-header {
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 16px;
+        margin-bottom: 16px;
+    }
+    .post-content {
+        min-height: 200px;
+        margin-bottom: 20px;
+    }
+    /* 댓글 스타일 개선 */
+    .comments {
+        border-top: 1px solid #e0e0e0;
+        padding-top: 20px;
+        margin-top: 20px;
+    }
+    .comments h3 {
+        font-size: 16px;
+        margin: 0 0 16px 0;
+        color: #333;
+    }
+    .comment-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .comment-info {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 6px;
+    }
+    .comment-author {
+        color: #333;
+        font-weight: 500;
+        margin-right: 8px;
+    }
+    .comment-date {
+        color: #999;
+    }
+    .comment-content {
+        font-size: 14px;
+        line-height: 1.5;
+        color: #333;
+        white-space: pre-line;  /* 줄바꿈 보존 */
+    }
+    .no-comments {
+        padding: 20px 0;
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+    }
+    .error {
+        color: #e74c3c;
+        padding: 20px;
+        text-align: center;
+        font-size: 14px;
+    }
+    /* 댓글 로딩 스켈레톤 */
+    .comment-skeleton {
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .comment-skeleton-line {
+        height: 16px;
+        margin: 8px 0;
+        background: #f0f0f0;
+        border-radius: 4px;
+    }
+</style>
+{{end}}
+
+{{define "content"}}
+<div class="post-view">
+    <h1>{{.Title}}</h1>
+    <div class="post-header">
+        <h2 class="post-title">{{.Post.제목}}</h2>
+        <div class="post-info">
+            <span>작성자: {{.Post.이름}}</span>
+            <span>작성일: {{.Post.날짜}}</span>
+            <span>조회: {{.Post.조회}}</span>
+            <span>추천: {{.Post.추천}}</span>
+        </div>
+    </div>
+    <div class="post-content">{{.Post.내용}}</div>
+    <div class="post-actions">
+        <button onclick="location.href='/{{.BoardType}}'">목록</button>
+    </div>
+    <!-- 댓글 영역 -->
+    <div class="comments" id="comments">
+        <h3>댓글 <span id="comment-count">(로딩중...)</span></h3>
+        <!-- 댓글 로딩 스켈레톤 UI -->
+        <div class="comment-skeleton">
+            <div class="comment-skeleton-line" style="width: 40%"></div>
+            <div class="comment-skeleton-line" style="width: 70%"></div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+// 댓글 로딩 함수
+async function loadComments() {
+    const postId = '{{.Post.ID}}';
+    const boardType = '{{.BoardType}}';
+    
+    try {
+        const response = await fetch(`/api/${boardType}/${postId}/comments`);
+        const data = await response.json();
+        
+        const commentsDiv = document.getElementById('comments');
+        const commentCount = document.getElementById('comment-count');
+        
+        // 댓글 수 업데이트
+        commentCount.textContent = `(${data.count})`;
+        
+        // 댓글 HTML 생성
+        let html = '<h3>댓글 <span>(' + data.count + ')</span></h3>';
+        
+        if (data.comments && data.comments.length > 0) {
+            data.comments.forEach(comment => {
+                // 날짜 형식 변환
+                const date = new Date(comment.날짜);
+                const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                
+                html += `
+                    <div class="comment-item">
+                        <div class="comment-info">
+                            <span class="comment-author">${comment.작성자}</span>
+                            <span class="comment-date">${formattedDate}</span>
+                        </div>
+                        <div class="comment-content">${comment.내용}</div>
+                    </div>
+                `;
+            });
+        } else {
+            html += '<div class="no-comments">등록된 댓글이 없습니다.</div>';
+        }
+        
+        commentsDiv.innerHTML = html;
+    } catch (error) {
+        console.error('댓글 로딩 실패:', error);
+        document.getElementById('comments').innerHTML = `
+            <h3>댓글</h3>
+            <div class="error">댓글을 불러오는 중 오류가 발생했습니다.</div>
+        `;
+    }
+}
+
+// 페이지 로드 시 댓글 로딩
+document.addEventListener('DOMContentLoaded', () => {
+    loadComments();
+});
+</script>
+{{end}} 
